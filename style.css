@@ -1,41 +1,14 @@
-
+.axis-label {
+    text-anchor: middle;
+    font-size: 12px;
+    font-weight: semibold;
+}
 
 body {
     font-family: "Open Sans";
-}
-
-.player {
-    opacity: 0.4;
-    fill: teal;
-}
-
-.top_player {
-    opacity: 0.4;
-    fill: orange;
+    margin: 0;
 }
 
 #main {
-    margin: 10px 20px;
-}
-
-text.label {
-    text-anchor: middle;
-    font-size: 11px;
-    fill: #555;
-    font-family: sans-serif;
-}
-
-.axis text {
-    fill: #555;
-}
-
-.axis line,
-.axis path {
-    stroke: #555;
-}
-
-text.title {
-    text-anchor: middle;
-    font-size: 14px;
-    fill: #333;
+    margin: 20px;
 }
