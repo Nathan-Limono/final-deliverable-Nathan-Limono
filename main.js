@@ -1,8 +1,12 @@
 // Global function called when select element is changed
 function onCategoryChanged() {
     var select = d3.select('#categorySelect').node();
+    var selectCity = d3.select('#categorySelect2').node();
     // Get current value of select element
     var category = select.options[select.selectedIndex].value;
+    var categoryCity = selectCity.options[selectCity.selectedIndex].value;
+    console.log('city category: ', categoryCity)
+    console.log(category)
     // Update chart with the selected category of
 
     var rangeLeft = d3.select('#eventhandler > g > #labelleft').node().textContent;
@@ -11,12 +15,7 @@ function onCategoryChanged() {
     rangeLeft = parseFloat(rangeLeft)
     rangeRight = parseFloat(rangeRight)
 
-
-
-
-
-    console.log(category)
-    updateChart(category, rangeLeft, rangeRight);
+    updateChart(category, categoryCity, rangeLeft, rangeRight);
 }
 
 // recall that when data is loaded into memory, numbers are loaded as strings
@@ -57,6 +56,13 @@ var seasonsMap = {
     'fall': 'Sep, Oct, Nov'.split(', ')
 };
 
+var citiesMap = {
+    'all' : 'CLT, CQT, IND'.split(', '),
+    'CLT' : 'CLT',
+    'CQT' : 'CQT',
+    'IND' : 'IND'
+}
+
 average = function(d) {
     total = 0
     size = d.length
@@ -66,30 +72,34 @@ average = function(d) {
     return total / size
 }
 
-d3.csv('KHOU.csv').then(function(dataset) {
+d3.csv('cities_data.csv').then(function(dataset) {
     // Create global variables here and intialize the chart
     console.log('run')
     days = dataset
     console.log(dataset)
     let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    let cityNames = ['CLT', 'CQT', 'IND']
     days.forEach(function(d) {
         month = new Date(d.date).getMonth()
         d.date = monthNames[month]
     })
     months_data = []
     for (x of monthNames) {
-        obj = {'month' : x, 'avg_percipitation' : []}
-        months_data.push(obj)
+        for (y of cityNames) {
+            obj = {'month' : x, 'avg_percipitation' : [], 'city_name' : y}
+            months_data.push(obj)
+        }
     }
     console.log(months_data)
 
 
     days.forEach(function(d) {
         month = d.date
+        city = d.city
         // months_data[month].push(d.actual_precipitation)
         for (x of months_data) {
-            if(x.month == month) {
+            if(x.month == month && x.city_name == city) {
                 x.avg_percipitation.push(d.actual_precipitation)
             }
         }
@@ -243,7 +253,7 @@ d3.csv('KHOU.csv').then(function(dataset) {
     var slide = slider(0, max_precipitation)
 
     // Update the chart for all letters to initialize
-    updateChart('all-seasons', 0, max_precipitation);
+    updateChart('all-seasons', 'CLT', 0, max_precipitation);
 });
 
 function scaleX(freq) {
@@ -252,21 +262,24 @@ function scaleX(freq) {
 
 
 
-function updateChart(filterKey, lowRange, highRange) {
+function updateChart(filterKey, categoryCity, lowRange, highRange) {
     // Create a filtered array of letters based on the filterKey
     console.log(months_data)
     console.log(filterKey)
     console.log(seasonsMap[filterKey])
+    console.log('category City: ', categoryCity)
     var filteredMonths = months_data.filter(function(d){
-        console.log(d.month)
-        return (seasonsMap[filterKey].indexOf(d.month) >= 0) && (d.avg_percipitation >= lowRange) && (d.avg_percipitation <= highRange);
+        return (seasonsMap[filterKey].indexOf(d.month) >= 0) &&
+        (citiesMap[categoryCity].indexOf(d.city_name) >= 0) && (d.avg_percipitation >= lowRange) && (d.avg_percipitation <= highRange);
     });
 
     console.log(filteredMonths)
+    console.log('updated')
 
     var letter = chartG.selectAll('.bar')
     .data(filteredMonths, function(d) {
-        return d.month;
+        console.log('filtered: ', d)
+        return d.avg_percipitation;
     });
 
     var barG = letter.enter()
@@ -280,6 +293,7 @@ function updateChart(filterKey, lowRange, highRange) {
 
     barG.append('rect')
         .attr('width', function(d) {
+            console.log('rect: ', d)
             return scaleX(d.avg_percipitation);
         })
         .attr('height', barHeight)
@@ -293,8 +307,6 @@ function updateChart(filterKey, lowRange, highRange) {
         .text(function(d) {
             return (d.month);
         });
-
-
     letter.exit().remove();
 
 }
