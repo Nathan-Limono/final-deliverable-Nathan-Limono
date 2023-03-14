@@ -2,12 +2,32 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Lab 5 - ABCs of D3</title>
+    <title>Rain Tracker</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
     <div id="main">
+        <div id="legend">
+            <label id="legend-label">Rain Quantile Ranges</label>
+            <div class="legend-content">
+                <rect id='legend-first' class="legend-rect first-quarter"></rect>
+                <label>First (Lower) Quantile</label>
+            </div>
+            <div class="legend-content">
+                <rect class="legend-rect second-quarter"></rect>
+                <label>Second Quantile</label>
+            </div>
+            <div class="legend-content">
+                <rect class="legend-rect third-quarter"></rect>
+                <label>Third Quantile</label>
+            </div>
+            <div class="legend-content">
+                <rect class="legend-rect fourth-quarter"></rect>
+                <label>Fourth (Upper) Quantile</label>
+            </div>
+
+        </div>
         <svg width="300" height="600" style="border: 1px solid #777;">
         </svg>
         <div>
@@ -25,6 +45,10 @@
               <option selected value="CLT">CLT</option>
               <option value="CQT">CQT</option>
               <option value="IND">IND</option>
+              <option value="JAX">JAX</option>
+              <option value="KHOU">KHOU</option>
+              <option value="KNYC">KNYC</option>
+              <option value="KSEA">KSEA</option>
             </select>
         </div>
     </div>

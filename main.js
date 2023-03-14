@@ -18,6 +18,7 @@ function onCategoryChanged() {
     updateChart(category, categoryCity, rangeLeft, rangeRight);
 }
 
+
 // recall that when data is loaded into memory, numbers are loaded as strings
 // this function helps convert numbers into string during data preprocessing
 function dataPreprocessor(row) {
@@ -57,19 +58,25 @@ var seasonsMap = {
 };
 
 var citiesMap = {
-    'all' : 'CLT, CQT, IND'.split(', '),
+    'all' : 'CLT, CQT, IND, JAX, KHOU, KNYC, KSEA'.split(', '),
     'CLT' : 'CLT',
     'CQT' : 'CQT',
-    'IND' : 'IND'
+    'IND' : 'IND',
+    'JAX' : 'JAX',
+    'KHOU' : 'KHOU',
+    'KNYC' : 'KNYC',
+    'KSEA' : 'KSEA'
 }
 
-average = function(d) {
-    total = 0
-    size = d.length
-    for (x of d) {
-        total += parseFloat(x)
+average = function(rain, temp) {
+    totalRain = 0
+    totalTemp = 0
+    size = rain.length
+    for (i = 0; i < size; i++) {
+        totalRain += parseFloat(rain[i])
+        totalTemp += parseFloat(temp[i])
     }
-    return total / size
+    return [(totalRain / size),(totalTemp / size)]
 }
 
 d3.csv('cities_data.csv').then(function(dataset) {
@@ -79,7 +86,7 @@ d3.csv('cities_data.csv').then(function(dataset) {
     console.log(dataset)
     let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    let cityNames = ['CLT', 'CQT', 'IND']
+    let cityNames = ['CLT', 'CQT', 'IND', 'JAX', 'KHOU', 'KNYC', 'KSEA']
     days.forEach(function(d) {
         month = new Date(d.date).getMonth()
         d.date = monthNames[month]
@@ -87,7 +94,7 @@ d3.csv('cities_data.csv').then(function(dataset) {
     months_data = []
     for (x of monthNames) {
         for (y of cityNames) {
-            obj = {'month' : x, 'avg_percipitation' : [], 'city_name' : y}
+            obj = {'month' : x, 'avg_percipitation' : [], 'avg_temp' : [], 'city_name' : y}
             months_data.push(obj)
         }
     }
@@ -101,6 +108,7 @@ d3.csv('cities_data.csv').then(function(dataset) {
         for (x of months_data) {
             if(x.month == month && x.city_name == city) {
                 x.avg_percipitation.push(d.actual_precipitation)
+                x.avg_temp.push(d.actual_mean_temp)
             }
         }
     })
@@ -108,8 +116,14 @@ d3.csv('cities_data.csv').then(function(dataset) {
     console.log(months_data)
 
     for (x of months_data) {
-        x.avg_percipitation = average(x.avg_percipitation)
+        console.log(x)
+        var averages = average(x.avg_percipitation, x.avg_temp)
+
+        x.avg_percipitation = averages[0]
+        x.avg_temp = averages[1]
     }
+
+    console.log(months_data)
 
 
     svg.append('text')
@@ -146,7 +160,7 @@ d3.csv('cities_data.csv').then(function(dataset) {
     .attr('transform', 'translate(0, ' + chartHeight + ')');
 
     d3.select('#main').append('div')
-    .text('Slider:')
+    .text('Slider for Average Rain (inches):')
 
     slider = function(min, max, starting_min=min, starting_max=max) {
         var range = [min, max]
@@ -264,21 +278,23 @@ function scaleX(freq) {
 
 function updateChart(filterKey, categoryCity, lowRange, highRange) {
     // Create a filtered array of letters based on the filterKey
-    console.log(months_data)
-    console.log(filterKey)
-    console.log(seasonsMap[filterKey])
-    console.log('category City: ', categoryCity)
     var filteredMonths = months_data.filter(function(d){
         return (seasonsMap[filterKey].indexOf(d.month) >= 0) &&
         (citiesMap[categoryCity].indexOf(d.city_name) >= 0) && (d.avg_percipitation >= lowRange) && (d.avg_percipitation <= highRange);
     });
+
+    let prec = filteredMonths.map(s => s.avg_percipitation)
+    let precSort = prec.sort()
+    console.log(prec)
+    let quantiles = [d3.quantile(precSort, 0), d3.quantile(precSort, 0.25), d3.quantile(precSort, 0.5), d3.quantile(precSort, 0.75), d3.quantile(precSort, 1)]
+
+    console.log('quantiles ', quantiles)
 
     console.log(filteredMonths)
     console.log('updated')
 
     var letter = chartG.selectAll('.bar')
     .data(filteredMonths, function(d) {
-        console.log('filtered: ', d)
         return d.avg_percipitation;
     });
 
@@ -290,14 +306,49 @@ function updateChart(filterKey, categoryCity, lowRange, highRange) {
         .attr('transform', function(d,i) {
             return 'translate(' + [0, i * barBand + 8] + ')';
         });
+    console.log('quantile functions')
 
     barG.append('rect')
         .attr('width', function(d) {
-            console.log('rect: ', d)
             return scaleX(d.avg_percipitation);
         })
         .attr('height', barHeight)
-        .attr('class', 'bars');
+        .attr('class', 'bars'
+            // if((d.avg_percipitation >= quantiles[0]) && (d.avg_percipitation < quantiles[1])) {
+            //     console.log(quantiles[0] + '<=' + d.avg_percipitation + '<' + quantiles[1])
+            //     return 'bars first-quarter';
+            // } if ((d.avg_percipitation < quantiles[2]) && (d.avg_percipitation >= quantiles[1])) {
+            //     console.log(quantiles[1] + '<=' + d.avg_percipitation + '<' + quantiles[2])
+            //     return 'bars second-quarter';
+            // } if ((d.avg_percipitation < quantiles[3]) && (d.avg_percipitation >= quantiles[2])) {
+            //     console.log(quantiles[2] + '<=' + d.avg_percipitation + '<' + quantiles[3])
+            //     return 'bars third-quarter';
+            // } if ((d.avg_percipitation >= quantiles[3]) && (d.avg_percipitation <= quantiles[4])) {
+            //     console.log(quantiles[3] + '<=' + d.avg_percipitation + '<' + quantiles[4])
+            //     return 'bars fourth-quarter';
+            // }
+        );
+
+    var toolTip = barG.append('g').attr('class', 'tool-tip-g')
+
+    toolTip.append('rect').attr('class', 'arrow')
+
+    toolTip.append('rect').attr('class', 'tool-tip').attr('rx', '10px')
+
+    toolTip.append('text').attr('class', 'tool-tip-text-rain')
+    .text(function (d) {
+        var num = Math.round((d.avg_percipitation * 100)) / 100
+        if(num == 0) {
+            return 'Average Rain: ~' + num + " inches";
+        } else {
+            return 'Average Rain: ' + Math.round((d.avg_percipitation * 100)) / 100 + " inches";
+        }
+
+    })
+
+    toolTip.append('text').attr('class', 'tool-tip-text-temp')
+    .text(function (d) {return 'Average Temperature: ' + Math.round((d.avg_temp * 100)) / 100 + " (F)";})
+
 
     barG.append('text')
         .attr('text-anchor', 'middle')
@@ -306,6 +357,22 @@ function updateChart(filterKey, categoryCity, lowRange, highRange) {
         .attr('y', 18)
         .text(function(d) {
             return (d.month);
+        });
+    d3.selectAll('.bar > rect')
+        .attr('class', function(d, i) {
+            if((d.avg_percipitation >= quantiles[0]) && (d.avg_percipitation < quantiles[1])) {
+                console.log(quantiles[0] + '<=' + d.avg_percipitation + '<' + quantiles[1])
+                return 'bars first-quarter';
+            } if ((d.avg_percipitation < quantiles[2]) && (d.avg_percipitation >= quantiles[1])) {
+                console.log(quantiles[1] + '<=' + d.avg_percipitation + '<' + quantiles[2])
+                return 'bars second-quarter';
+            } if ((d.avg_percipitation < quantiles[3]) && (d.avg_percipitation >= quantiles[2])) {
+                console.log(quantiles[2] + '<=' + d.avg_percipitation + '<' + quantiles[3])
+                return 'bars third-quarter';
+            } if ((d.avg_percipitation >= quantiles[3]) && (d.avg_percipitation <= quantiles[4])) {
+                console.log(quantiles[3] + '<=' + d.avg_percipitation + '<' + quantiles[4])
+                return 'bars fourth-quarter';
+            }
         });
     letter.exit().remove();
 
